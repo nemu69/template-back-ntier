@@ -1,0 +1,28 @@
+.vs
+.idea
+bin
+obj
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+.config/
+
+# Images, .zips and user specific configs.
+*.jpg
+*.jpeg
+*.user
+*.userosscache
+*.sln.docstates
+*.pubxml
+*.zip
+Core/Shared/Dllvision/dll/*
+*/temp
+*.exe
+
+# .NET Core
+CoverageReport/
+TestResults/
+
+.generator/logs
+.generator/modelCraft

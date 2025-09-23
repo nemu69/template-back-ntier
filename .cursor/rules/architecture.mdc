@@ -1,0 +1,38 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+# Project Architecture
+
+This project follows an n-tier architecture with the following structure:
+
+## Core Project
+The [Core](mdc:Core) project is the central component containing:
+- Models/Entities in [Entities](mdc:Core/Entities)
+- Database context in [Shared/Data](mdc:Core/Shared/Data)
+- Repositories in [Shared/Repositories](mdc:Core/Shared/Repositories)
+- Services in [Shared/Services](mdc:Core/Shared/Services)
+- Unit of Work in [Shared/UnitOfWork](mdc:Core/Shared/UnitOfWork)
+
+## API Projects
+API projects start with the prefix "Api" (e.g., ApiMovie, ApiCity) and depend on the Core project.
+Each API project provides endpoints for a specific domain area.
+
+API controllers should follow the endpoints pattern defined in [Shared/Endpoints](mdc:Core/Shared/Endpoints).
+
+## Adding New API Projects
+When adding a new API project:
+1. Name it with the "Api" prefix followed by the domain name (e.g., ApiCustomer)
+2. Add a reference to the Core project
+3. Create controllers that inject services from Core.Shared.Services
+4. Follow the Endpoints pattern for consistent response handling
+
+## Development Workflow
+When creating a new feature:
+1. Define the entity model in Core/Entities
+2. Create or use existing repositories in Core/Shared/Repositories
+3. Implement services in Core/Shared/Services
+4. Create an API project for the domain if it doesn't exist
+5. Create endpoints that inherit from BaseEndpoint or BaseEntityEndpoint
+6. Inject the required services from Core

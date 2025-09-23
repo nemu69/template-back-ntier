@@ -1,0 +1,86 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Endpoints Pattern
+
+The API controllers in this project follow an Endpoints pattern defined in [Shared/Endpoints](mdc:Core/Shared/Endpoints).
+
+## Base Classes
+- [BaseEndpoint](mdc:Core/Shared/Endpoints/Kernel/BaseEndpoint.cs): Base class for all endpoints, provides generic error handling and response formatting
+- [BaseEntityEndpoint](mdc:Core/Shared/Endpoints/Kernel/BaseEntityEndpoint.cs): Extends BaseEndpoint for entity-specific operations
+
+## API Response Pattern
+All endpoints return a standardized response format defined in:
+- [ApiResponse](mdc:Core/Shared/Models/ApiResponses/ApiResponse.cs): Standard response wrapper
+- [ApiResponseMethod](mdc:Core/Shared/Models/ApiResponses/ApiResponseMethod.cs): Methods for creating standardized responses
+
+## Creating a New Endpoint
+When creating a new API endpoint:
+1. Create a class that inherits from BaseEndpoint or BaseEntityEndpoint
+2. Inject the required services from Core.Shared.Services
+3. Use the GenericEndpoint or GenericEndpointEmptyResponse methods to wrap your endpoint logic
+4. Return standardized responses using ApiResponse methods
+
+## Examples
+
+### Domain-Specific Endpoint (e.g., Movie, City, Cinema)
+```csharp
+public class {Domain}Endpoint : 
+    BaseEntityEndpoint<{Domain}, DTO{Domain}, I{Domain}Service>, ICarterModule
+{
+    public void AddRoutes(IEndpointRouteBuilder app)
+    {
+        RouteGroupBuilder group = app.MapGroup("Api{Domain}").WithTags(nameof({Domain}Endpoint));
+        group = MapBaseEndpoints(group, BaseEndpointFlags.All);
+    }
+}
+```
+
+### Custom Endpoint Implementation
+For custom endpoints beyond the base CRUD operations, override methods in your endpoint class:
+
+```csharp
+public class {Domain}Endpoint : 
+    BaseEntityEndpoint<{Domain}, DTO{Domain}, I{Domain}Service>, ICarterModule
+{
+    public void AddRoutes(IEndpointRouteBuilder app)
+    {
+        RouteGroupBuilder group = app.MapGroup("Api{Domain}").WithTags(nameof({Domain}Endpoint));
+        group = MapBaseEndpoints(group, BaseEndpointFlags.All);
+		group.MapGet("getById", Get{Domain}ById)
+				.WithName($"{nameof(Get{Domain}ById)")
+				.WithSummary($"An summary of this endpoint")
+				.WithOpenApi();
+    }
+
+    private static Task<Result<Ok<{Response}>, ProblemHttpResult>> Get{Domain}ById(
+        {Domain}Service service,
+        int id) => GenericEndpoint(() => service.Get(id), httpContext);
+}
+```
+
+### Using BaseEndpointFlags
+The `BaseEndpointFlags` enum is used to specify which CRUD operations to enable:
+```csharp
+public enum BaseEndpointFlags
+{
+    None = 0,
+    Create = 1,
+    Read = 2,
+    Update = 4,
+    Delete = 8,
+    All = Create | Read | Update | Delete,
+    ToLogs = 16
+}
+```
+
+Use the flags to enable specific operations:
+```csharp
+// Enable only Create and Read operations
+group = MapBaseEndpoints(group, BaseEndpointFlags.Create | BaseEndpointFlags.Read);
+
+// Enable all operations with logging
+group = MapBaseEndpoints(group, BaseEndpointFlags.All | BaseEndpointFlags.ToLogs);
+```

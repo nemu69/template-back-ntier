@@ -1,0 +1,11 @@
+# This file is here so roslynator will not analyse migrations.
+root = true
+
+[*.cs]
+
+dotnet_analyzer_diagnostic.category-roslynator.severity = none
+
+roslynator_refactorings.enabled = false
+
+roslynator_compiler_diagnostic_fixes.enabled = false
+roslynator_compiler_diagnsotic_fix.CA1825

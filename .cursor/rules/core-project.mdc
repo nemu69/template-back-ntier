@@ -1,0 +1,37 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Core Project Structure
+
+The Core project is the foundation of the n-tier architecture and contains:
+
+## Entities
+The [Entities](mdc:Core/Entities) directory contains domain models organized by feature:
+- [Countries](mdc:Core/Entities/Countries)
+- [Cities](mdc:Core/Entities/Cities)
+- [Cinemas](mdc:Core/Entities/Cinemas)
+- [Movies](mdc:Core/Entities/Movies)
+
+## Shared Components
+The [Shared](mdc:Core/Shared) directory contains:
+
+### Data Access
+- [Data](mdc:Core/Shared/Data): Database contexts and configurations
+- [Repositories](mdc:Core/Shared/Repositories): Repository implementations
+- [UnitOfWork](mdc:Core/Shared/UnitOfWork): Unit of Work pattern implementation
+
+### Business Logic
+- [Services](mdc:Core/Shared/Services): Services that implement business logic
+- [DataProcessings](mdc:Core/Shared/DataProcessings): Data processing utilities
+
+### API Infrastructure
+- [Models](mdc:Core/Shared/Models): DTOs and other model classes
+- [Endpoints](mdc:Core/Shared/Endpoints): Base classes for API endpoints
+
+### Utilities
+- [Configuration](mdc:Core/Shared/Configuration): Application configuration
+- [Dictionaries](mdc:Core/Shared/Dictionaries): Enumeration and constant values
+- [Extensions](mdc:Core/Shared/Extensions): Extension methods
+- [Exceptions](mdc:Core/Shared/Exceptions): Custom exception classes

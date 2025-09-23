@@ -1,0 +1,49 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Roslynator Code Formatting and Analysis
+
+This project uses [Roslynator](mdc:https:/josefpihrt.github.io/docs/roslynator) for code analysis and formatting. Roslynator is a set of code analysis tools for C#, powered by Roslyn.
+
+## Code Style Rules
+
+Code style rules are defined in [.editorconfig](mdc:.editorconfig) and enforced during build. Common style requirements include:
+
+- Trailing whitespace should be removed
+- Explicit types are preferred over `var`
+- Trailing commas should be added to multi-line initializers and parameter lists
+- Pattern matching should be used for null checks
+- Proper indentation and formatting for initializers, method chains, and argument lists
+
+## Fixing Code Style Issues
+
+When encountering linter errors, you can fix them using the Roslynator CLI:
+
+```bash
+dotnet tool install -g roslynator.dotnet.cli
+roslynator fix <PROJECT|SOLUTION> --format
+```
+
+For specific issues with formatting, you can run:
+
+```bash
+roslynator fix <PROJECT|SOLUTION> --diagnostics RCS1037 RCS0053 RCS1260 RCS1248 RCS1008 RCS1264 RCS1250
+```
+
+## Common Diagnostics IDs
+
+- `RCS1037`: Remove trailing white-space
+- `RCS0053`: Fix formatting of an initializer
+- `RCS1260`: Add trailing comma
+- `RCS1248`: Use pattern matching to check for null
+- `RCS1008`: Use explicit type instead of 'var'
+- `RCS1264`: Use explicit type instead of 'var'
+- `RCS1250`: Simplify object creation
+- `RCS0054`: Fix formatting of a call chain
+
+## Integration with the Project
+
+When creating new code, make sure to follow the existing style patterns and run the code analyzer before committing changes. This helps maintain a consistent code style across the entire codebase.

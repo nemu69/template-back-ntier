@@ -1,0 +1,68 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+# Repository and Service Pattern
+
+This project implements the Repository and Service pattern to separate data access logic from business logic.
+
+## Repositories
+Repositories are defined in [Shared/Repositories](mdc:Core/Shared/Repositories) and handle data access operations:
+- Each entity has its own repository interface (I{Entity}Repository) and implementation
+- Repositories use the database context to perform CRUD operations
+- Repositories are registered in the dependency injection container
+
+## Services
+Services are defined in [Shared/Services](mdc:Core/Shared/Services) and handle business logic:
+- Each entity has its own service interface (I{Entity}Service) and implementation
+- Services use repositories to access data
+- Services implement business rules, validation, and transformation logic
+- Services are registered in the dependency injection container
+
+## Unit of Work
+The Unit of Work pattern coordinates work across multiple repositories:
+- Defined in [Shared/UnitOfWork](mdc:Core/Shared/UnitOfWork)
+- Provides a way to commit or rollback all changes as a single transaction
+- Exposes repositories through properties
+
+## Implementation Flow
+When implementing a new feature:
+1. Create entity models in Core/Entities/{Domain}
+2. Create repository interfaces and implementations
+   ```csharp
+   public interface I{Domain}Repository : IRepository<{Domain}>
+   {
+       // Domain-specific repository methods
+   }
+   
+   public class {Domain}Repository : Repository<{Domain}>, I{Domain}Repository
+   {
+       public {Domain}Repository(DbContext context) : base(context) { }
+       
+       // Implementation of domain-specific methods
+   }
+   ```
+3. Create service interfaces and implementations that use repositories
+   ```csharp
+   public interface I{Domain}Service
+   {
+       Task<{Domain}Dto> Get{Domain}Async(int id);
+       Task<int> Create{Domain}Async({Domain}Dto domainDto);
+       // Other service methods
+   }
+   
+   public class {Domain}Service : I{Domain}Service
+   {
+       private readonly I{Domain}Repository _{domain}Repository;
+       
+       public {Domain}Service(I{Domain}Repository {domain}Repository)
+       {
+           _{domain}Repository = {domain}Repository;
+       }
+       
+       // Implementation of service methods
+   }
+   ```
+4. Register services and repositories in dependency injection
+5. Inject services into endpoints/controllers

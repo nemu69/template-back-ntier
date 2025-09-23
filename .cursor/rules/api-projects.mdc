@@ -1,0 +1,63 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+# API Project Structure
+
+API projects in this solution follow a consistent pattern and naming convention.
+
+## Naming Convention
+All API projects follow the naming convention `Api{DomainName}`, for example:
+- ApiMovie: Provides endpoints for movie-related operations
+- ApiCity: Provides endpoints for city-related operations
+
+## Project Structure
+Each API project should maintain the following structure:
+
+### Controllers
+Controllers are organized by domain entity and implement endpoints defined in Core:
+- Use minimal API approach when possible
+- Inject services from Core.Shared.Services
+- Follow the Endpoints pattern defined in Core.Shared.Endpoints
+
+### Configuration
+- Program.cs: Configure services, middleware, and app settings
+- appsettings.json: Environment-specific configuration
+
+## Dependency Injection
+API projects depend on Core for:
+- Entity definitions
+- Services
+- Repositories 
+- Database context
+
+Services should be injected through constructor injection:
+
+```csharp
+public class MovieController
+{
+    private readonly IMovieService _movieService;
+    
+    public MovieController(IMovieService movieService)
+    {
+        _movieService = movieService;
+    }
+    
+    // Endpoints implementation
+}
+```
+
+## Response Pattern
+All API endpoints should:
+1. Use the GenericEndpoint or GenericEndpointEmptyResponse methods
+2. Return standardized ApiResponse objects
+3. Handle exceptions through the built-in error handling
+
+## Creating a New API Project
+When creating a new API project:
+1. Create a new project with the naming convention `Api{DomainName}`
+2. Add a reference to the Core project
+3. Configure the Program.cs file to register Core services
+4. Create controllers that follow the Endpoints pattern
+5. Implement minimal API endpoints that use services from Core
