@@ -15,8 +15,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Serilog;
 using Core.Shared.Models.ApiResponses;
-using Microsoft.AspNetCore.Diagnostics.HealthChecks;
-using HealthChecks.UI.Client;
 using System.Diagnostics;
 using Microsoft.AspNetCore.Http.Features;
 using Core.Shared.Data;
@@ -72,8 +70,6 @@ public static class DependencyInjection
 				context.ProblemDetails.Extensions.TryAdd("traceId", activity?.Id);
 			};
 		});
-
-		services.AddHealthChecks().AddSqlServer(configuration.GetConnectionStringWithThrow("DefaultConnection"));
 
 		services.AddOutputCache();
 
@@ -151,12 +147,6 @@ public static class DependencyInjection
 		app.UseStatusCodePages();
 
 		app.UseOutputCache();
-
-		app.MapHealthChecks(
-			"/health",
-			new HealthCheckOptions {
-				ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
-			});
 
 		TypeAdapterConfig.GlobalSettings.Default.PreserveReference(true);
 		Log.Information("Starting API Service");
