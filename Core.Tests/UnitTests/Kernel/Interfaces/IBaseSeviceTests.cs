@@ -1,6 +1,6 @@
-using Core.Shared.Repositories.Kernel.Interfaces;
 using Core.Shared.Models.DB.Kernel.Interfaces;
 using Core.Shared.Models.DTO.Kernel.Interfaces;
+using Core.Shared.Repositories.Kernel.Interfaces;
 using Core.Shared.Services.Kernel.Interfaces;
 
 namespace Core.Tests.UnitTests.Kernel.Interfaces;

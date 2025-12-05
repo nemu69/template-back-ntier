@@ -33,7 +33,7 @@ public class SourceStringBuilder
 
 	public void AppendMultipleLines(string text)
 	{
-		string[] lines = text.Split(new[] { "\r\n" }, StringSplitOptions.None);
+		string[] lines = text.Split(["\r\n"], StringSplitOptions.None);
 		foreach (string line in lines)
 		{
 			AppendLine(line);

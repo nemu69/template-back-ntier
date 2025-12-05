@@ -1,6 +1,6 @@
-﻿using Serilog.Configuration;
+﻿using Microsoft.Extensions.Configuration;
 using Serilog;
-using Microsoft.Extensions.Configuration;
+using Serilog.Configuration;
 
 namespace Core.Shared.Configuration.Logging;
 

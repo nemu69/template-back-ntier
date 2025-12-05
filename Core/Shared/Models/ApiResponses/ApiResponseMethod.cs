@@ -53,11 +53,10 @@ public static class ApiResponse
 		if (jsonTypeInfo.PolymorphismOptions is null)
 			return;
 
-		List<Type> derivedTypes = jsonTypeInfo.PolymorphismOptions.DerivedTypes
+		List<Type> derivedTypes = [.. jsonTypeInfo.PolymorphismOptions.DerivedTypes
 			.Where(static t => Attribute.IsDefined(t.DerivedType, typeof(JsonDerivedTypeAttribute)))
-			.Select(static t => t.DerivedType)
-			.ToList();
-		HashSet<Type> hashset = new(derivedTypes);
+			.Select(static t => t.DerivedType),];
+		HashSet<Type> hashset = [.. derivedTypes];
 		Queue<Type> queue = new(derivedTypes);
 		while (queue.TryDequeue(out Type? derived))
 		{
@@ -105,7 +104,7 @@ public static class ApiResponse
 				TimeoutException => 408,
 				InvalidOperationException => 409,
 				NotImplementedException => 501,
-				_ => 500
+				_ => 500,
 			};
 
 			string title = e switch {
@@ -115,7 +114,7 @@ public static class ApiResponse
 				TimeoutException => "Request timeout",
 				InvalidOperationException => "Request caused a conflict",
 				NotImplementedException => "Not implemented request",
-				_ => "Internal Server Error"
+				_ => "Internal Server Error",
 			};
 
 			CreateLog(httpContext, errorStatusCode);

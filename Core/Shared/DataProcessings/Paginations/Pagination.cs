@@ -1,7 +1,7 @@
+using Core.Shared.DataProcessings.Filtering;
+using Core.Shared.DataProcessings.Sorting;
 using Core.Shared.Models.DB.Kernel.Interfaces;
 using Core.Shared.Models.DTO.Kernel.Interfaces;
-using Core.Shared.DataProcessings.Sorting;
-using Core.Shared.DataProcessings.Filtering;
 using Core.Shared.Paginations;
 
 namespace Core.Shared.DataProcessings.Paginations;

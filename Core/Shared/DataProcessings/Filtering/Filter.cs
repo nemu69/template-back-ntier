@@ -31,9 +31,7 @@ public static class Filter
 		if (!filterParams.Any())
 			return source;
 
-		List<Expression> filters = filterParams
-			.Select(filterParam => FilterToExpression<T>(filterParam, param))
-			.ToList();
+		List<Expression> filters = [.. filterParams.Select(filterParam => FilterToExpression<T>(filterParam, param))];
 
 		if (filters.Count == 0)
 			return source;

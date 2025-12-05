@@ -239,7 +239,7 @@ dotnet_diagnostic.IDE0110.severity = error
 dotnet_diagnostic.IDE0120.severity = none
 
 # IDE0130: Namespace does not match folder structure (dotnet_style_namespace_match_folder is already set)
-dotnet_diagnostic.IDE0130.severity = error
+dotnet_diagnostic.IDE0130.severity = suggestion
 
 # IDE0150: Prefer null check over type check (csharp_style_prefer_null_check_over_type_check is already set)
 dotnet_diagnostic.IDE0150.severity = none

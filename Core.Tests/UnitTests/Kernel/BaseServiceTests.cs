@@ -1,10 +1,10 @@
-using NSubstitute;
-using Core.Shared.UnitOfWork.Interfaces;
-using Core.Shared.Repositories.Kernel.Interfaces;
 using Core.Shared.Models.DB.Kernel.Interfaces;
 using Core.Shared.Models.DTO.Kernel.Interfaces;
-using Core.Tests.UnitTests.Kernel.Interfaces;
+using Core.Shared.Repositories.Kernel.Interfaces;
 using Core.Shared.Services.Kernel.Interfaces;
+using Core.Shared.UnitOfWork.Interfaces;
+using Core.Tests.UnitTests.Kernel.Interfaces;
+using NSubstitute;
 
 namespace Core.Tests.UnitTests.Kernel;
 

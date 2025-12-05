@@ -1,12 +1,16 @@
+using System.Diagnostics;
 using Carter;
-using Core.Shared.Configuration.Logging;
 using Core.Shared.Configuration;
+using Core.Shared.Configuration.Logging;
+using Core.Shared.Data;
 using Core.Shared.Dictionaries;
+using Core.Shared.Models.ApiResponses;
 using Core.Shared.UnitOfWork;
 using Core.Shared.UnitOfWork.Interfaces;
 using Mapster;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -14,10 +18,6 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Serilog;
-using Core.Shared.Models.ApiResponses;
-using System.Diagnostics;
-using Microsoft.AspNetCore.Http.Features;
-using Core.Shared.Data;
 
 namespace Core.Shared.DependencyInjection;
 

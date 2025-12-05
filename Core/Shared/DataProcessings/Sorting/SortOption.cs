@@ -20,10 +20,7 @@ public static class SortOptionMap
 		{ "Descending", SortOption.Descending },
 	};
 
-	public static SortOption Get(string key)
-	{
-		return Map[key];
-	}
+	public static SortOption Get(string key) => Map[key];
 }
 
 public enum SortOption

@@ -2,14 +2,13 @@
 using Core.Shared.DataProcessings;
 using Core.Shared.DataProcessings.Paginations;
 using Core.Shared.Exceptions;
+using Core.Shared.Extensions;
 using Core.Shared.Models.DB.Kernel.Interfaces;
 using Core.Shared.Models.DTO.Kernel.Interfaces;
 using Core.Shared.Paginations;
 using Core.Shared.Repositories.Kernel.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Query;
-
-using Core.Shared.Extensions;
 
 namespace Core.Shared.Repositories.Kernel;
 
