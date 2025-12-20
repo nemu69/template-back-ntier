@@ -1,12 +1,9 @@
-// <summary>es a new instance of the <see cref="AutoFakerFixture"/> class.
 using Soenneker.Utils.AutoBogus;
 using Soenneker.Utils.AutoBogus.Config;
 
 namespace Core.Tests.UnitTests.Setup;
 
 /// <summary>
-/// 
-/// </summary>
 /// Configures AutoBogus with global settings, including custom conventions,
 /// overrides, and repeat count.
 /// </summary>
@@ -23,7 +20,7 @@ public static class AutoFakerSetup
 			Overrides =
 				[
 					new IDOverride(),
-					new YearOverride()
+					new YearOverride(),
 				],
 			TreeDepth = 1,
 		};
