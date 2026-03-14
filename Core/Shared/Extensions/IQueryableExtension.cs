@@ -65,7 +65,7 @@ public static class IQueryableExtensions
 	{
 		return !property.CanRead
 			|| !property.CanWrite
-			|| !property.PropertyType.IsValueType
+			|| property.PropertyType.IsValueType
 			|| property.Name.Equals("ID", StringComparison.OrdinalIgnoreCase);
 	}
 
