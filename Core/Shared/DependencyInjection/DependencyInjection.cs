@@ -4,6 +4,7 @@ using Core.Shared.Configuration;
 using Core.Shared.Configuration.Logging;
 using Core.Shared.Data;
 using Core.Shared.Dictionaries;
+using Core.Shared.Endpoints.Kernel.OutputCache;
 using Core.Shared.Models.ApiResponses;
 using Core.Shared.UnitOfWork;
 using Core.Shared.UnitOfWork.Interfaces;
@@ -71,7 +72,11 @@ public static class DependencyInjection
 			};
 		});
 
-		services.AddOutputCache();
+		services.AddOutputCache(options => {
+			// Universal tag so POST /cache/clear can evict every cached response.
+			// https://antondevtips.com/blog/aspnetcore-output-cache-how-to-speed-up-your-api-with-in-memory-cache-and-redis#clearing-the-entire-cache
+			options.AddBasePolicy(policy => policy.Tag(OutputCacheTags.All));
+		});
 
 		string[] clientHost = configuration.GetSectionWithThrow<string[]>(ConfigDictionary.ClientHost);
 		services.AddCors(options => {
@@ -131,6 +136,15 @@ public static class DependencyInjection
 
 		app.UseHttpsRedirection();
 
+		// Converts unhandled exceptions into Problem Details responses
+		app.UseExceptionHandler();
+
+		// Returns the Problem Details response for (empty) non-successful responses
+		app.UseStatusCodePages();
+
+		// Must run before MapCarter so entity output-cache policies apply
+		app.UseOutputCache();
+
 		app.MapCarter();
 
 		if (app.Environment.IsDevelopment())
@@ -139,14 +153,6 @@ public static class DependencyInjection
 			app.UseSwaggerUI();
 			app.ApplyMigration<AppDbContext>();
 		}
-
-		// Converts unhandled exceptions into Problem Details responses
-		app.UseExceptionHandler();
-
-		// Returns the Problem Details response for (empty) non-successful responses
-		app.UseStatusCodePages();
-
-		app.UseOutputCache();
 
 		TypeAdapterConfig.GlobalSettings.Default.PreserveReference(true);
 		Log.Information("Starting API Service");

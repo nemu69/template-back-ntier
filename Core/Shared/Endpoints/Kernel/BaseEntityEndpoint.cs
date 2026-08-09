@@ -1,5 +1,6 @@
 using Core.Shared.DataProcessings;
 using Core.Shared.Endpoints.Kernel.Dictionaries;
+using Core.Shared.Endpoints.Kernel.OutputCache;
 using Core.Shared.Models.DB.Kernel.Interfaces;
 using Core.Shared.Models.DTO.Kernel.Interfaces;
 using Core.Shared.Paginations;
@@ -8,6 +9,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.AspNetCore.Routing;
 
 namespace Core.Shared.Endpoints.Kernel;
@@ -24,6 +26,8 @@ public class BaseEntityEndpoint<T, TDTO, TService> : BaseEndpoint
 	where TService : IBaseEntityService<T, TDTO>
 {
 	private bool _isLogged;
+	private bool _useCache;
+	private string _entityCacheTag = string.Empty;
 
 	/// <summary>
 	/// Calling this function creates the needed CRUD generic functions depending on which ones are asked for.
@@ -33,14 +37,26 @@ public class BaseEntityEndpoint<T, TDTO, TService> : BaseEndpoint
 	/// <see cref="BaseEndpointFlags"/>specifying which endpoints are needed among Create, Read, Update and Delete.
 	/// Allows to also disable logging
 	/// </param>
+	/// <param name="cache">
+	/// Optional per-route output-cache durations. When provided, read endpoints are cached and
+	/// Create/Update/Delete evict entries tagged with the entity type name.
+	/// Also maps <c>POST cache/clear</c> on the route group.
+	/// </param>
 	/// <returns></returns>
 	protected RouteGroupBuilder MapBaseEndpoints(
 		RouteGroupBuilder group,
-		BaseEndpointFlags flags)
+		BaseEndpointFlags flags,
+		BaseEntityCacheOptions? cache = null)
 	{
 		string dtoName = typeof(TDTO).Name;
 		string tName = typeof(T).Name;
 		_isLogged = flags.HasFlag(BaseEndpointFlags.ToLogs);
+		_useCache = cache is not null;
+		_entityCacheTag = tName;
+
+		if (_useCache)
+			MapCacheClearEndpoint(group);
+
 		group = group.MapGroup(tName);
 
 		if (flags.HasFlag(BaseEndpointFlags.Create))
@@ -51,27 +67,32 @@ public class BaseEntityEndpoint<T, TDTO, TService> : BaseEndpoint
 			group.MapGet(string.Empty, GetAll)
 				.WithName($"{nameof(GetAll)}{tName}s")
 				.WithSummary($"Get all {tName}s")
-				.WithOpenApi();
+				.WithOpenApi()
+				.CacheEntityGet(cache?.GetAll, _entityCacheTag);
 
 			group.MapPut(string.Empty, GetAllWithDataProcess)
 				.WithName($"{nameof(GetAllWithDataProcess)}{tName}s")
 				.WithSummary($"Get all {tName}s with filters, sorting and text search with includes required")
-				.WithOpenApi();
+				.WithOpenApi()
+				.CacheEntityPut(cache?.GetAllWithDataProcess, _entityCacheTag);
 
 			group.MapPut("by", GetBy)
 				.WithName($"{nameof(GetBy)}{tName}")
 				.WithSummary($"Get first {tName} with filters, sorting and text search with includes required")
-				.WithOpenApi();
+				.WithOpenApi()
+				.CacheEntityPut(cache?.GetBy, _entityCacheTag);
 
 			group.MapPut("pagination", CountWithPagination)
 				.WithName($"{nameof(CountWithPagination)}{tName}s")
 				.WithSummary($"Get the number of {tName}s available in the filter and search with includes required")
-				.WithOpenApi();
+				.WithOpenApi()
+				.CacheEntityPut(cache?.CountWithPagination, _entityCacheTag);
 
 			group.MapPut("pagination/{nbItems}", GetWithPagination)
 				.WithName($"{nameof(GetWithPagination)}{tName}s")
 				.WithSummary($"Get {tName}s by paging, sorting, text search and filtering with includes")
-				.WithOpenApi();
+				.WithOpenApi()
+				.CacheEntityPut(cache?.GetWithPagination, _entityCacheTag);
 		}
 
 		if (flags.HasFlag(BaseEndpointFlags.Update))
@@ -94,13 +115,49 @@ public class BaseEntityEndpoint<T, TDTO, TService> : BaseEndpoint
 		return group;
 	}
 
+	/// <summary>
+	/// Maps <c>POST cache/clear</c> on the current route group to evict every entry tagged with
+	/// <see cref="OutputCacheTags.All"/>.
+	/// </summary>
+	/// <param name="group"></param>
+	protected void MapCacheClearEndpoint(RouteGroupBuilder group)
+	{
+		group.MapPost("cache/clear", ClearEntireCache)
+			.WithName($"ClearEntireOutputCache{_entityCacheTag}")
+			.WithSummary("Clear the entire output cache")
+			.WithOpenApi();
+	}
+
+	private static async Task<NoContent> ClearEntireCache(
+		IOutputCacheStore cacheStore,
+		CancellationToken cancellationToken)
+	{
+		await cacheStore.EvictByTagAsync(OutputCacheTags.All, cancellationToken);
+		return TypedResults.NoContent();
+	}
+
+	private async Task EvictEntityCacheAsync(IOutputCacheStore cacheStore, CancellationToken cancellationToken)
+	{
+		if (_useCache)
+			await cacheStore.EvictByTagAsync(_entityCacheTag, cancellationToken);
+	}
+
 	#region Create
 
-	private Task<Results<Ok<TDTO>, ProblemHttpResult>> Add(
+	private async Task<Results<Ok<TDTO>, ProblemHttpResult>> Add(
 		TService service,
+		IOutputCacheStore cacheStore,
 		HttpContext httpContext,
-		TDTO dto)
-			=> GenericEndpoint(() => service.Add(dto.ToModel()), httpContext, _isLogged);
+		TDTO dto,
+		CancellationToken cancellationToken)
+	{
+		Results<Ok<TDTO>, ProblemHttpResult> result =
+			await GenericEndpoint(() => service.Add(dto.ToModel()), httpContext, _isLogged);
+		if (result.Result is Ok<TDTO>)
+			await EvictEntityCacheAsync(cacheStore, cancellationToken);
+
+		return result;
+	}
 
 	#endregion Create
 
@@ -140,21 +197,39 @@ public class BaseEntityEndpoint<T, TDTO, TService> : BaseEndpoint
 
 	#region Update
 
-	private Task<Results<Ok<TDTO>, ProblemHttpResult>> Update(
+	private async Task<Results<Ok<TDTO>, ProblemHttpResult>> Update(
 		TService service,
+		IOutputCacheStore cacheStore,
 		HttpContext httpContext,
-		TDTO dto)
-			=> GenericEndpoint(() => service.Update(dto.ToModel()), httpContext, _isLogged);
+		TDTO dto,
+		CancellationToken cancellationToken)
+	{
+		Results<Ok<TDTO>, ProblemHttpResult> result =
+			await GenericEndpoint(() => service.Update(dto.ToModel()), httpContext, _isLogged);
+		if (result.Result is Ok<TDTO>)
+			await EvictEntityCacheAsync(cacheStore, cancellationToken);
+
+		return result;
+	}
 
 	#endregion Update
 
 	#region Delete
 
-	private Task<Results<Ok<bool>, ProblemHttpResult>> Remove(
+	private async Task<Results<Ok<bool>, ProblemHttpResult>> Remove(
 		[FromServices] TService service,
+		IOutputCacheStore cacheStore,
 		HttpContext httpContext,
-		[FromRoute] int id)
-			=> GenericEndpointEmptyResponse(() => service.Remove(id), httpContext, _isLogged);
+		[FromRoute] int id,
+		CancellationToken cancellationToken)
+	{
+		Results<Ok<bool>, ProblemHttpResult> result =
+			await GenericEndpointEmptyResponse(() => service.Remove(id), httpContext, _isLogged);
+		if (result.Result is Ok<bool>)
+			await EvictEntityCacheAsync(cacheStore, cancellationToken);
+
+		return result;
+	}
 
 	#endregion Delete
 }
