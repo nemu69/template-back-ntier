@@ -60,38 +60,33 @@ public class BaseEntityEndpoint<T, TDTO, TService> : BaseEndpoint
 		group = group.MapGroup(tName);
 
 		if (flags.HasFlag(BaseEndpointFlags.Create))
-			group.MapPost(string.Empty, Add).WithSummary($"Add the {dtoName} in the body to the database").WithOpenApi();
+			group.MapPost(string.Empty, Add).WithSummary($"Add the {dtoName} in the body to the database");
 
 		if (flags.HasFlag(BaseEndpointFlags.Read))
 		{
 			group.MapGet(string.Empty, GetAll)
 				.WithName($"{nameof(GetAll)}{tName}s")
 				.WithSummary($"Get all {tName}s")
-				.WithOpenApi()
 				.CacheEntityGet(cache?.GetAll, _entityCacheTag);
 
 			group.MapPut(string.Empty, GetAllWithDataProcess)
 				.WithName($"{nameof(GetAllWithDataProcess)}{tName}s")
 				.WithSummary($"Get all {tName}s with filters, sorting and text search with includes required")
-				.WithOpenApi()
 				.CacheEntityPut(cache?.GetAllWithDataProcess, _entityCacheTag);
 
 			group.MapPut("by", GetBy)
 				.WithName($"{nameof(GetBy)}{tName}")
 				.WithSummary($"Get first {tName} with filters, sorting and text search with includes required")
-				.WithOpenApi()
 				.CacheEntityPut(cache?.GetBy, _entityCacheTag);
 
 			group.MapPut("pagination", CountWithPagination)
 				.WithName($"{nameof(CountWithPagination)}{tName}s")
 				.WithSummary($"Get the number of {tName}s available in the filter and search with includes required")
-				.WithOpenApi()
 				.CacheEntityPut(cache?.CountWithPagination, _entityCacheTag);
 
 			group.MapPut("pagination/{nbItems}", GetWithPagination)
 				.WithName($"{nameof(GetWithPagination)}{tName}s")
 				.WithSummary($"Get {tName}s by paging, sorting, text search and filtering with includes")
-				.WithOpenApi()
 				.CacheEntityPut(cache?.GetWithPagination, _entityCacheTag);
 		}
 
@@ -100,8 +95,7 @@ public class BaseEntityEndpoint<T, TDTO, TService> : BaseEndpoint
 			group.MapPut("update", Update)
 				.WithName($"{nameof(Update)}{tName}")
 				.WithSummary($"Update the {tName} in the body if it already exist")
-				.Accepts<TDTO>("application/json")
-				.WithOpenApi();
+				.Accepts<TDTO>("application/json");
 		}
 
 		if (!flags.HasFlag(BaseEndpointFlags.Delete))
@@ -109,8 +103,7 @@ public class BaseEntityEndpoint<T, TDTO, TService> : BaseEndpoint
 
 		group.MapDelete("{id}", Remove)
 			.WithName($"{nameof(Remove)}{tName}")
-			.WithSummary($"Remove the {tName} by its ID")
-			.WithOpenApi();
+			.WithSummary($"Remove the {tName} by its ID");
 
 		return group;
 	}
@@ -124,8 +117,7 @@ public class BaseEntityEndpoint<T, TDTO, TService> : BaseEndpoint
 	{
 		group.MapPost("cache/clear", ClearEntireCache)
 			.WithName($"ClearEntireOutputCache{_entityCacheTag}")
-			.WithSummary("Clear the entire output cache")
-			.WithOpenApi();
+			.WithSummary("Clear the entire output cache");
 	}
 
 	private static async Task<NoContent> ClearEntireCache(

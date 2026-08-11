@@ -29,7 +29,7 @@ public class DTOBaseEntity : IDTO<BaseEntity, DTOBaseEntity>
 	public virtual BaseEntity ToModel()
 	{
 		return new() {
-			ID = ID
+			ID = ID,
 		};
 	}
 }

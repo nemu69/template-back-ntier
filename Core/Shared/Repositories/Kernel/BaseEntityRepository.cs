@@ -140,12 +140,12 @@ public class BaseEntityRepository<TContext, T, TDTO> : IBaseEntityRepository<T, 
 
 	public Task<int> ExecuteUpdateByIdAsync(
 		int id,
-		Expression<Func<SetPropertyCalls<T>, SetPropertyCalls<T>>> properties)
+		Action<UpdateSettersBuilder<T>> properties)
 			=> _context.Set<T>().Where(x => x.ID == id).ExecuteUpdateAsync(properties);
 
 	public Task<int> ExecuteUpdateAsync(
 		Expression<Func<T, bool>> predicate,
-		Expression<Func<SetPropertyCalls<T>, SetPropertyCalls<T>>> properties)
+		Action<UpdateSettersBuilder<T>> properties)
 			=> _context.Set<T>().Where(predicate).ExecuteUpdateAsync(properties);
 
 	public Task<int> ExecuteUpdateEntityAsync(T entity)

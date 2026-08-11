@@ -9,7 +9,7 @@ internal static class EntityOutputCacheExtensions
 		TimeSpan? duration,
 		string entityTag) => ((duration is not { } d) || (d <= TimeSpan.Zero))
 		? builder
-		: builder.WithMetadata(new EntityReadOutputCachePolicy(d, entityTag));
+		: EntityReadOutputCachePolicy.Apply(builder, d, entityTag);
 
 	public static RouteHandlerBuilder CacheEntityPut(
 		this RouteHandlerBuilder builder,
@@ -19,11 +19,11 @@ internal static class EntityOutputCacheExtensions
 	{
 		return ((duration is not { } d) || (d <= TimeSpan.Zero))
 			? builder
-			: builder.WithMetadata(
-				new EntityReadOutputCachePolicy(
-					d,
-					entityTag,
-					allowPut: true,
-					varyByBody: true));
+			: EntityReadOutputCachePolicy.Apply(
+				builder,
+				d,
+				entityTag,
+				allowPut: true,
+				varyByBody: true);
 	}
 }

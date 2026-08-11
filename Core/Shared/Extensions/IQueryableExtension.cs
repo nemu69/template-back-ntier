@@ -25,7 +25,7 @@ public static class IQueryableExtensions
 	{
 		ArgumentNullException.ThrowIfNull(entity);
 
-		return source.ExecuteUpdate(BuildSetPropertyExpression(entity));
+		return source.ExecuteUpdate(setters => ApplyEntitySetters(setters, entity));
 	}
 
 	/// <summary>
@@ -44,52 +44,35 @@ public static class IQueryableExtensions
 	{
 		ArgumentNullException.ThrowIfNull(entity);
 
-		return source.ExecuteUpdateAsync(BuildSetPropertyExpression(entity), cancellationToken);
+		return source.ExecuteUpdateAsync(setters => ApplyEntitySetters(setters, entity), cancellationToken);
 	}
 
 	/// <summary>
-	/// Builds the SetProperty chain expression for EF Core ExecuteUpdate.
-	/// Collects all updatable properties (including owned entity nested properties) and chains SetProperty calls.
+	/// Applies SetProperty calls for EF Core ExecuteUpdate via UpdateSettersBuilder.
+	/// Collects all updatable properties (including owned entity nested properties) and calls SetProperty for each.
 	/// </summary>
-	/// <typeparam name="T">The type of the entity to build the SetProperty chain expression for.</typeparam>
-	/// <param name="entity">The entity to build the SetProperty chain expression for.</param>
-	/// <returns>A lambda expression representing the SetProperty chain expression.</returns>
-	private static Expression<Func<SetPropertyCalls<T>, SetPropertyCalls<T>>> BuildSetPropertyExpression<T>(T entity)
+	/// <typeparam name="T">The type of the entity to apply SetProperty calls for.</typeparam>
+	/// <param name="setters">The UpdateSettersBuilder used by ExecuteUpdate.</param>
+	/// <param name="entity">The entity to set properties from.</param>
+	private static void ApplyEntitySetters<T>(UpdateSettersBuilder<T> setters, T entity)
 	{
 		ParameterExpression entityParam = Expression.Parameter(typeof(T), "e");
-		ParameterExpression setPropertyParam = Expression.Parameter(typeof(SetPropertyCalls<T>), "s");
 
 		// Collect all property setters: direct scalar props + owned entity scalar props (flattened)
-		List<(MemberExpression PropertyAccess, object? Value, Type ValueType)> setters =
+		List<(LambdaExpression PropertyExpression, object? Value, Type ValueType)> propertySetters =
 			CollectPropertySetters(entity, entityParam);
 
-		Expression? constructorExpressions = null;
-		MethodInfo? setPropertyMethod = typeof(SetPropertyCalls<>)
-			.MakeGenericType(typeof(T))
-			.GetMethods()
-			.FirstOrDefault(IsSetPropertyMethod)
+		MethodInfo setPropertyMethod = typeof(UpdateSettersBuilder<T>)
+			.GetMethods(BindingFlags.Public | BindingFlags.Instance)
+			.FirstOrDefault(IsValueSetPropertyMethod)
 			?? throw new InvalidOperationException("Method SetProperty not found");
 
-		// Build chained SetProperty calls: s.SetProperty(e => e.Prop, e => value).SetProperty(...)
-		foreach ((MemberExpression propertyAccess, object? value, Type valueType) in setters)
+		// Apply SetProperty calls: s.SetProperty(e => e.Prop, value)
+		foreach ((LambdaExpression propertyExpression, object? value, Type valueType) in propertySetters)
 		{
-			LambdaExpression propertyExpression = Expression.Lambda(propertyAccess, entityParam);
-			ConstantExpression constant = Expression.Constant(value, valueType);
-			LambdaExpression valueExpressionFunc = Expression.Lambda(constant, entityParam);
-
 			MethodInfo setProperty = setPropertyMethod.MakeGenericMethod(valueType);
-
-			constructorExpressions = Expression.Call(
-				constructorExpressions ?? setPropertyParam,
-				setProperty,
-				propertyExpression,
-				valueExpressionFunc
-			);
+			setProperty.Invoke(setters, [propertyExpression, value]);
 		}
-
-		return Expression.Lambda<Func<SetPropertyCalls<T>, SetPropertyCalls<T>>>(
-			constructorExpressions ?? setPropertyParam,
-			setPropertyParam);
 	}
 
 	/// <summary>
@@ -101,11 +84,11 @@ public static class IQueryableExtensions
 	/// <param name="entity">The entity to collect properties from.</param>
 	/// <param name="parameter">The parameter expression for the entity.</param>
 	/// <returns>A list of property setters to apply during ExecuteUpdate.</returns>
-	private static List<(MemberExpression PropertyAccess, object? Value, Type ValueType)> CollectPropertySetters<T>(
+	private static List<(LambdaExpression PropertyExpression, object? Value, Type ValueType)> CollectPropertySetters<T>(
 		T entity,
 		ParameterExpression parameter)
 	{
-		List<(MemberExpression PropertyAccess, object? Value, Type ValueType)> setters = [];
+		List<(LambdaExpression PropertyExpression, object? Value, Type ValueType)> setters = [];
 		Type entityType = typeof(T);
 
 		foreach (PropertyInfo property in entityType.GetProperties())
@@ -127,21 +110,29 @@ public static class IQueryableExtensions
 					// Build e => e.Owned.SubProperty
 					MemberExpression ownedAccess = Expression.Property(parameter, property);
 					MemberExpression nestedAccess = Expression.Property(ownedAccess, subProperty);
+					LambdaExpression propertyExpression = Expression.Lambda(
+						typeof(Func<,>).MakeGenericType(typeof(T), subProperty.PropertyType),
+						nestedAccess,
+						parameter);
 
 					// Use owned value if present, otherwise default (handles null owned entity)
 					object? value = (ownedValue is not null)
 						? subProperty.GetValue(ownedValue)
 						: GetDefaultValue(subProperty.PropertyType);
 
-					setters.Add((nestedAccess, value, subProperty.PropertyType));
+					setters.Add((propertyExpression, value, subProperty.PropertyType));
 				}
 			}
 			else if (IsValidForSetProperty(property))
 			{
 				// Direct scalar property: e => e.PropertyName
 				MemberExpression propertyAccess = Expression.Property(parameter, property);
+				LambdaExpression propertyExpression = Expression.Lambda(
+					typeof(Func<,>).MakeGenericType(typeof(T), propertyType),
+					propertyAccess,
+					parameter);
 				object? value = property.GetValue(entity);
-				setters.Add((propertyAccess, value, propertyType));
+				setters.Add((propertyExpression, value, propertyType));
 			}
 		}
 
@@ -159,19 +150,21 @@ public static class IQueryableExtensions
 			? Activator.CreateInstance(type) : null;
 
 	/// <summary>
-	/// Identifies the SetProperty method on SetPropertyCalls&lt;T&gt; (takes 2 Func parameters).
+	/// Identifies the SetProperty method on UpdateSettersBuilder&lt;T&gt; (property expression + value).
 	/// </summary>
-	/// <param name="m">The method info to check.</param>
+	/// <param name="method">The method info to check.</param>
 	/// <returns>True if the method is the SetProperty method, false otherwise.</returns>
-	private static bool IsSetPropertyMethod(MethodInfo m)
+	private static bool IsValueSetPropertyMethod(MethodInfo method)
 	{
-		if (m.Name != "SetProperty")
+		if ((method.Name != "SetProperty") || !method.IsGenericMethodDefinition)
 			return false;
 
-		int paramCount = m.GetParameters().Count(p =>
-			p.ParameterType.IsGenericType
-				&& p.ParameterType.GetGenericTypeDefinition() == typeof(Func<,>));
-		return paramCount == 2;
+		ParameterInfo[] parameters = method.GetParameters();
+		if (parameters.Length != 2)
+			return false;
+
+		// Second parameter is TProperty (not Expression<Func<...>>)
+		return !parameters[1].ParameterType.IsGenericType;
 	}
 
 	/// <summary>
@@ -190,7 +183,7 @@ public static class IQueryableExtensions
 	private static bool IsValidForSetProperty(PropertyInfo property)
 		=> property.CanRead
 			&& property.CanWrite
-			&& (property.PropertyType == typeof(string) || property.PropertyType.IsValueType)
+			&& ((property.PropertyType == typeof(string)) || property.PropertyType.IsValueType)
 			&& !property.Name.Equals("ID", StringComparison.OrdinalIgnoreCase);
 
 	/// <summary>
@@ -200,5 +193,5 @@ public static class IQueryableExtensions
 	/// <returns>True if the property should be excluded from bulk update (navigation, owned object itself, ID, etc.), false otherwise.</returns>
 	public static bool IsInValidProperty(PropertyInfo property)
 		=> !IsValidForSetProperty(property)
-			|| (property.PropertyType.IsClass && property.PropertyType != typeof(string));
+			|| (property.PropertyType.IsClass && (property.PropertyType != typeof(string)));
 }

@@ -18,6 +18,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Scalar.AspNetCore;
 using Serilog;
 
 namespace Core.Shared.DependencyInjection;
@@ -37,6 +38,7 @@ public static class DependencyInjection
 				opt.JsonSerializerOptions.PropertyNamingPolicy = ApiResponse.JsonOptions.PropertyNamingPolicy;
 				opt.JsonSerializerOptions.TypeInfoResolver = ApiResponse.JsonOptions.TypeInfoResolver;
 				opt.JsonSerializerOptions.ReferenceHandler = ApiResponse.JsonOptions.ReferenceHandler;
+				opt.JsonSerializerOptions.NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.Strict;
 			});
 
 		services.ConfigureHttpJsonOptions(
@@ -44,10 +46,13 @@ public static class DependencyInjection
 				opt.SerializerOptions.PropertyNamingPolicy = ApiResponse.JsonOptions.PropertyNamingPolicy;
 				opt.SerializerOptions.TypeInfoResolver = ApiResponse.JsonOptions.TypeInfoResolver;
 				opt.SerializerOptions.ReferenceHandler = ApiResponse.JsonOptions.ReferenceHandler;
+				opt.SerializerOptions.NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.Strict;
 			});
 
-		// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-		services.AddSwaggerGen();
+		// Built-in OpenAPI document generation (.NET 10+). WithOpenApi() is obsolete (ASPDEPR002).
+		// https://learn.microsoft.com/aspnet/core/fundamentals/openapi/aspnetcore-openapi
+		services.AddOpenApi(options =>
+			options.OpenApiVersion = Microsoft.OpenApi.OpenApiSpecVersion.OpenApi3_0);
 
 		services.AddDbContext<AppDbContext>(
 			options => options.UseSqlServer(configuration.GetConnectionStringWithThrow("DefaultConnection")));
@@ -73,9 +78,12 @@ public static class DependencyInjection
 		});
 
 		services.AddOutputCache(options => {
-			// Universal tag so POST /cache/clear can evict every cached response.
-			// https://antondevtips.com/blog/aspnetcore-output-cache-how-to-speed-up-your-api-with-in-memory-cache-and-redis#clearing-the-entire-cache
-			options.AddBasePolicy(policy => policy.Tag(OutputCacheTags.All));
+			// Named policy (opt-in via CacheOutput / EntityReadOutputCachePolicy).
+			// Not a base policy — otherwise every GET would be cached for 60s.
+			options.AddPolicy(
+				OutputCacheTags.All,
+				policy => policy.Tag(OutputCacheTags.All),
+				excludeDefaultPolicy: true);
 		});
 
 		string[] clientHost = configuration.GetSectionWithThrow<string[]>(ConfigDictionary.ClientHost);
@@ -149,8 +157,10 @@ public static class DependencyInjection
 
 		if (app.Environment.IsDevelopment())
 		{
-			app.UseSwagger();
-			app.UseSwaggerUI();
+			app.MapOpenApi();
+			app.MapScalarApiReference();
+			app.UseSwaggerUI(options =>
+				options.SwaggerEndpoint("/openapi/v1.json", "v1"));
 			app.ApplyMigration<AppDbContext>();
 		}
 

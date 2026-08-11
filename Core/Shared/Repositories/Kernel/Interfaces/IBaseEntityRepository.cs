@@ -184,7 +184,7 @@ public interface IBaseEntityRepository<T, TDTO>
 	/// <returns>The updated entity <see cref="T" /></returns>
 	Task<int> ExecuteUpdateByIdAsync(
 		int id,
-		Expression<Func<SetPropertyCalls<T>, SetPropertyCalls<T>>> properties);
+		Action<UpdateSettersBuilder<T>> properties);
 
 	/// <summary>
 	///    Update an entity in the table of <typeref name="T" /> and returns the number entity affected
@@ -196,7 +196,7 @@ public interface IBaseEntityRepository<T, TDTO>
 	/// <returns>The updated entity <see cref="T" /></returns>
 	Task<int> ExecuteUpdateAsync(
 		Expression<Func<T, bool>> predicate,
-		Expression<Func<SetPropertyCalls<T>, SetPropertyCalls<T>>> properties);
+		Action<UpdateSettersBuilder<T>> properties);
 
 	Task<int> ExecuteUpdateEntityAsync(T entity);
 

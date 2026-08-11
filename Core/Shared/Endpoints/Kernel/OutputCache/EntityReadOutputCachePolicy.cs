@@ -1,12 +1,14 @@
 using System.Security.Cryptography;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
-
 using Microsoft.AspNetCore.OutputCaching;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Core.Shared.Endpoints.Kernel.OutputCache;
 
 /// <summary>
 /// Output-cache policy for entity reads: expiration, entity tag, optional body vary, optional PUT.
+/// Composes with the named <see cref="OutputCacheTags.All"/> policy for global eviction.
 /// </summary>
 internal sealed class EntityReadOutputCachePolicy : IOutputCachePolicy
 {
@@ -26,6 +28,16 @@ internal sealed class EntityReadOutputCachePolicy : IOutputCachePolicy
 		_allowPut = allowPut;
 		_varyByBody = varyByBody;
 	}
+
+	public static RouteHandlerBuilder Apply(
+		RouteHandlerBuilder builder,
+		TimeSpan duration,
+		string entityTag,
+		bool allowPut = false,
+		bool varyByBody = false)
+		=> builder
+			.CacheOutput(OutputCacheTags.All)
+			.WithMetadata(new EntityReadOutputCachePolicy(duration, entityTag, allowPut, varyByBody));
 
 	async ValueTask IOutputCachePolicy.CacheRequestAsync(OutputCacheContext context, CancellationToken cancellation)
 	{
