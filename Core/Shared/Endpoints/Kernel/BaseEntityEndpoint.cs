@@ -40,7 +40,7 @@ public class BaseEntityEndpoint<T, TDTO, TService> : BaseEndpoint
 	/// <param name="cache">
 	/// Optional per-route output-cache durations. When provided, read endpoints are cached and
 	/// Create/Update/Delete evict entries tagged with the entity type name.
-	/// Also maps <c>POST cache/clear</c> on the route group.
+	/// Also maps <c>POST cache/clear</c> (entity tag) and <c>POST cache/clear-all</c> (tag all).
 	/// </param>
 	/// <returns></returns>
 	protected RouteGroupBuilder MapBaseEndpoints(
@@ -109,15 +109,27 @@ public class BaseEntityEndpoint<T, TDTO, TService> : BaseEndpoint
 	}
 
 	/// <summary>
-	/// Maps <c>POST cache/clear</c> on the current route group to evict every entry tagged with
-	/// <see cref="OutputCacheTags.All"/>.
+	/// Maps <c>POST cache/clear</c> (entity tag) and <c>POST cache/clear-all</c>
+	/// (<see cref="OutputCacheTags.All"/>) on the current route group.
 	/// </summary>
 	/// <param name="group"></param>
 	protected void MapCacheClearEndpoint(RouteGroupBuilder group)
 	{
-		group.MapPost("cache/clear", ClearEntireCache)
+		group.MapPost("cache/clear", ClearEntityCache)
+			.WithName($"ClearOutputCache{_entityCacheTag}")
+			.WithSummary($"Clear the output cache for {_entityCacheTag}");
+
+		group.MapPost("cache/clear/all", ClearEntireCache)
 			.WithName($"ClearEntireOutputCache{_entityCacheTag}")
 			.WithSummary("Clear the entire output cache");
+	}
+
+	private async Task<NoContent> ClearEntityCache(
+		IOutputCacheStore cacheStore,
+		CancellationToken cancellationToken)
+	{
+		await cacheStore.EvictByTagAsync(_entityCacheTag, cancellationToken);
+		return TypedResults.NoContent();
 	}
 
 	private static async Task<NoContent> ClearEntireCache(
